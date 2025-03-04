@@ -16,10 +16,10 @@ from sklearn.utils import resample
 from torch.optim.lr_scheduler import StepLR
 
 # CONST
-TRAIN_PROP = 0.5
+TRAIN_PROP = 0.25
 EPOCHS=300
-DROPOUT=False
-NAME='baseline'
+DROPOUT=True
+NAME='dropout'
 LR_DECAY=False
 MOMENTUM=None
 torch.manual_seed(42)
@@ -79,7 +79,7 @@ y_test.reset_index(drop=True)
 y_train = y_train.reset_index(drop=True)
 
 if TRAIN_PROP < 1:
-    print(f'Subsetting to {TRAIN_PROP}%')
+    print(f'Subsetting to {int(TRAIN_PROP * 100)}%')
     print('Before', y_train.shape)
     y_train, _ = train_test_split(y_train, test_size=1-TRAIN_PROP, stratify=y_train, random_state=42)
     print('After', y_train.shape)
@@ -262,9 +262,6 @@ for epoch in range(EPOCHS):
         correct_test += (yhat == y).sum().item()
         total_test += y.size(0)
 
-        # decay learning rate
-        if LR_DECAY:
-            scheduler.step()
 
     # Print stats
     epoch_loss /= len(train_loader)
@@ -275,6 +272,9 @@ for epoch in range(EPOCHS):
     losses.append(epoch_loss)
     accuracies.append(accuracy)
     accuracies_test.append(accuracy_test)
+    # decay learning rate
+    if LR_DECAY:
+        scheduler.step()
     
     
 # Plot loss and accuracy
@@ -287,5 +287,40 @@ ax2.set_xlabel('Epoch')
 ax2.set_ylabel('Accuracy')
 ax2.set_ylim([0,1])
 ax2.legend()
-fig.suptitle(f'{NAME} train {TRAIN_PROP}%')
-plt.savefig(f'p_{NAME}_{TRAIN_PROP}.png')
+try:
+    fig.suptitle(f'{NAME} train {int(TRAIN_PROP * 100)}%')
+    plt.savefig(f'p_{NAME}_{TRAIN_PROP}.png')
+except:
+    plt.savefig(f'p_{NAME}_{TRAIN_PROP}.png')
+
+
+# compute average precision and accuracy across all classes for trained model
+# on test data
+# o = model(X_test)
+# y = y_test.squeeze()
+# yhat = torch.argmax(o, dim=1)
+# correct = (yhat == y).sum().item()
+# total = y.size(0)
+# accuracy = correct / total
+# print(f"Test accuracy: {accuracy:.4f}")
+# # confusion matrix
+# confusion = torch.zeros(num_classes, num_classes)
+# for i in range(y.size(0)):
+#     confusion[y[i], yhat[i]] += 1
+# print(confusion)
+# # precision
+# precision = torch.zeros(num_classes)
+# for i in range(num_classes):
+#     precision[i] = confusion[i,i] / confusion[:,i].sum()
+# print(precision)
+# # recall
+# recall = torch.zeros(num_classes)
+# for i in range(num_classes):
+#     recall[i] = confusion[i,i] / confusion[i,:].sum()
+# print(recall)
+# # f1
+# f1 = 2 * (precision * recall) / (precision + recall)
+# print(f1)
+# # macro
+# macro = f1.mean()
+# print(f"Macro: {macro:.4f}")
